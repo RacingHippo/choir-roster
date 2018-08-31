@@ -41,6 +41,11 @@ function cr_GetRehearsalList($year, $term, $userID) {
     return false;
 }
 
+// ajax handler to record the user's response to a rehearsal date.
+function cr_RecordRehearsalResponse($userID, $rehearsalID, $response) {
+
+}
+
 function cr_ResponseName($response) {
 	global $cr_lang;
 	if ($response=='') $response = 'None';
@@ -88,6 +93,26 @@ function cr_AjaxResponse($vars) {
 
 	$res=cr_AddResponse(intval($vars["cr_postid"]), $vars["cr_response"], $userID);
 	return cr_DrawList(intval($vars["cr_postid"]), intval($current_user->ID));
+}
+
+function cr_AjaxRehearsalResponse($vars) {
+	global $wpdb, $current_user, $cr_lang, $table_prefix;
+	$userID = isset($vars['cr_uid']) ? $vars['cr_uid'] : $current_user->ID;
+	$response = $vars["cr_response"]=="true" ? 1 : 0;
+	$rehearsalID = $vars["cr_reheasalid"];
+
+	if ($userID > 0 && $rehearsalID > 0 ) {
+			$query = sprintf("REPLACE INTO `".$table_prefix."choir_rehearsalResponses` (`rehearsalID`, `user`, `response`, `setBy`) VALUES (%d, %d, %d, %d)",
+												intval($rehearsalID),
+												intval($userID),
+												$response,
+												intval($current_user->ID)
+												);
+		$res=$wpdb->query($query);
+		if($res) return "it thinks it worked";
+	}
+	return "Failed: $query";
+
 }
 
 function cr_DrawList($id=0, $activeUserID=0) {
@@ -186,24 +211,19 @@ function cr_DrawRehearsalList($year, $term) {
     //return( print_r($responseList,1));
     $draw = '';
 
-    $draw.='<table class="cr_outerTable" id="cr_rehearsalDates_'.$current_user->ID.'">
-                <tr><td>';
-    $draw.=$cr_lang['listheader'].'</td></tr>';
-
-    $draw.='<tr><td><table class="cr_innerTable" id="cr_innerTableL_'.$current_user->ID.'"><tr>';
-    for($i=0; $i<5; $i++){
-        $prettyDate = date("jS M", strtotime($responseList[$i]->rehearsalDate));
-        $draw .= "<td>" . $prettyDate . "</td>";
+    $draw.='<table class="cr_innerTable" id="cr_innerTableL_'.$current_user->ID.'">';
+    for($i=0; $i<count($responseList); $i++){
+        $prettyDate = date("D jS M", strtotime($responseList[$i]->rehearsalDate));
+				$draw .= "<tr>";
+				$draw .= "<td>" . $prettyDate . "</td>";
+				$draw .= "<td>" . $responseList[$i]->location . "</td>";
+				$response = $responseList[$i]->response ? 'checked' : '';
+				$rehearsalID=$responseList[$i]->rehearsalID;
+        $draw .= "<td><input type='checkbox' name='$rehearsalID' onChange='updateRehearsalResponse(this)' id='".$current_user->ID."' title='$rehearsalID' $response></td>"; //"<td> <input type='checkbox' name='thinkOfAName' value='1'" . $response . "></td>";
+				$draw .= "</tr>";
     }
-    $draw.='</tr><tr>';
-    for($i=0; $i<5; $i++){
-        $draw .= "<td> <input type='checkbox' name='thinkOfAName' value='1'" . $responseList[$i]->response ? 'checked' : '' . "></td>";
-    }
-    $draw .= "</tr>";
+    $draw.='</table>';
 
-    $draw.='</table></td>';
-
-    $draw.='</table></td></tr></table>';
 
     return $draw;
 }

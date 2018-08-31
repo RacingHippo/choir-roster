@@ -2,7 +2,7 @@
 /*  Copyright 2010-2014  John Kennard
 
 		This program is free software; you can redistribute it and/or modify
-		it under the terms of the GNU General Public License, version 2, as 
+		it under the terms of the GNU General Public License, version 2, as
 		published by the Free Software Foundation.
 
 		This program is distributed in the hope that it will be useful,
@@ -17,11 +17,11 @@
 
 /*
 Plugin Name: Choir Roster
-Plugin URI: 
+Plugin URI:
 Description: Choir roster and event attendance list. You can add it to any post or page.
 Author: RacingHippo
 Version: 1.1
-Author URI: 
+Author URI:
 License: GPLv2
 */
 
@@ -88,19 +88,19 @@ function cr_Main() {
 
 	$return.='<div id="cr_cont_'.$post->ID.'">'.cr_DrawList().'</div></div>';
 
-	$return .= "<script language='javascript'>
+	$return .= "<!-- Choir Roster Script start --><script language='javascript'>
 
 	jQuery(document).ready(function(){
 		jQuery('.cr_btn_".$post->ID."').click(function() {
 			jQuery('#cr_state_".$post->ID."').html('<img src=\"".get_bloginfo('wpurl') ."/wp-content/plugins/choir-roster/img/ajax-loader.gif\" />');
 			param=jQuery(this).attr('title');
 			jQuery.post('".get_bloginfo('wpurl') ."/wp-content/plugins/choir-roster/response.php', { cr_response: param, cr_postid:".$post->ID." },
-										function(data){ 
+										function(data){
 											if(data) {
 												jQuery('#cr_cont_".$post->ID."').html(data);
 												jQuery('#cr_state_".$post->ID."').html('');
 											}
-										}, 
+										},
 										'html');
 			return false;
 		});
@@ -120,7 +120,7 @@ function cr_Main() {
 			'html');
 		return false;
 	}
-	</script>";
+	</script><!-- Choir Roster Script end -->";
 
 	return $return;
 }
@@ -149,38 +149,15 @@ function cr_rehearsalList($atts) {
     $return.='<div id="cr_cont_'.$post->ID.'">'.cr_DrawRehearsalList($params['year'],$params['term']).'</div></div>';
 
     $return .= "<script language='javascript'>
-
-	jQuery(document).ready(function(){
-		jQuery('.cr_btn_".$post->ID."').click(function() {
-			jQuery('#cr_state_".$post->ID."').html('<img src=\"".get_bloginfo('wpurl') ."/wp-content/plugins/choir-roster/img/ajax-loader.gif\" />');
-			param=jQuery(this).attr('title');
-			jQuery.post('".get_bloginfo('wpurl') ."/wp-content/plugins/choir-roster/response.php', { cr_response: param, cr_postid:".$post->ID." },
-										function(data){ 
-											if(data) {
-												jQuery('#cr_cont_".$post->ID."').html(data);
-												jQuery('#cr_state_".$post->ID."').html('');
-											}
-										}, 
-										'html');
-			return false;
-		});
-	});
-
-	function updateResponse(element) {
-		uid = jQuery(element).attr('title');
-		jQuery('#cr_state_".$post->ID."').html('<img src=\"".get_bloginfo('wpurl') ."/wp-content/plugins/choir-roster/img/ajax-loader.gif\" />');
-		response = jQuery(element).val();
-		jQuery.post('".get_bloginfo('wpurl') ."/wp-content/plugins/choir-roster/response.php', { cr_response: response, cr_uid: uid, cr_postid:".$post->ID." },
-			function(data){
-				if(data) {
-					jQuery('#cr_cont_".$post->ID."').html(data);
-					jQuery('#cr_state_".$post->ID."').html('');
-				}
-			},
-			'html');
-		return false;
-	}
-	</script>";
+			function updateRehearsalResponse(element) {
+				rid = jQuery(element).attr('title');
+				uid = jQuery(element).attr('id');
+				response = jQuery(element).prop('checked');
+				alert('rid='+rid+ 'uid='+uid+ 'response='+response);
+				jQuery.post('".get_bloginfo('wpurl') ."/wp-content/plugins/choir-roster/rehearsalResponse.php', { cr_response: response, cr_uid: uid, cr_reheasalid: rid }, function(data){alert(data)});
+				return false;
+			}
+			</script>";
 
     return $return;
 }
@@ -210,18 +187,18 @@ function cr_eventList() {
 			//jQuery('#cr_state_".$post->ID."').html('<img src=\"".get_bloginfo('wpurl') ."/wp-content/plugins/choir-roster/img/ajax-loader.gif\" />');
 			//param=jQuery(this).attr('title');
 			//jQuery.post('".get_bloginfo('wpurl') ."/wp-content/plugins/choir-roster/response.php', { cr_response: param, cr_postid:".$post->ID." },
-			//							function(data){ 
+			//							function(data){
 			//								if(data) {
 			//									jQuery('#cr_cont_"  . $post->ID."').html(data);
 			//									jQuery('#cr_state_" . $post->ID."').html('');
 			//								}
-			//							}, 
+			//							},
 			//							'html');
 			return false;
 		});
 	})
 	</script>";
-	
+
 	return $return;
 }
 

@@ -7,7 +7,7 @@ $cr_lang=array(
 "No"=>"No",
 "Maybe"=>"Maybe",
 "None"=>"???",
-"listheader"=>"",
+"listheader"=>"listheader",
 "question"=>"Are you able to attend this event?"
 );
 ?>

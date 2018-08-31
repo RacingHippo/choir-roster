@@ -9,5 +9,5 @@ require_once(ABSPATH . "wp-content/plugins/choir-roster/functions.php");
 header('Content-Type: text/html; charset='.get_option('blog_charset').'');
 
 
-echo cr_AjaxResponse($_POST);
+echo cr_AjaxRehearsalResponse($_POST);
 ?>
