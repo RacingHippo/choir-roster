@@ -33,7 +33,6 @@ function cr_GetRehearsalList($year, $term, $userID) {
     $list=array();
     $sql = "SELECT dates.rehearsalID, user, response, rehearsalDate, location FROM " . $table_prefix . "choir_rehearsalResponses res JOIN " . $table_prefix . "choir_rehearsalDates dates on dates.rehearsalID = res.rehearsalID  WHERE year = $year AND  term = $term AND user = $userID ORDER BY rehearsalDate ASC";
     $data = $wpdb->get_results($sql);
-		echo " rows=" . count($data);
     if(count($data)>0 && is_array($data)) {
         return($data);
         foreach($data as $r) {
@@ -42,6 +41,12 @@ function cr_GetRehearsalList($year, $term, $userID) {
         return $list;
     } else {
 			// can't find any responses for this user for this term, so let's insert the rows for them
+			// but first, let's check that rehearsals exist for this year/term...
+			$sql = "SELECT rehearsalID FROM " . $table_prefix . "choir_rehearsalDates dates WHERE year = $year AND  term = $term";
+	    $data = $wpdb->get_results($sql);
+			if(count($data)==0) {
+				return false;
+			}
 			$query = "INSERT INTO " . $table_prefix . "choir_rehearsalResponses (rehearsalID, user, response) SELECT rehearsalID, $userID, 0 FROM " . $table_prefix . "choir_rehearsalDates WHERE year = $year AND  term = $term";
 			$res=$wpdb->query($query);
 			// now call this function again to display them
@@ -216,8 +221,12 @@ function drawSingers($arrUserVoices, $voiceHandle, $voiceName, $responseList, $a
 function cr_DrawRehearsalList($year, $term) {
     global $post, $current_user, $cr_lang;
     //currentUser = $current_user";
-    $responseList = cr_GetRehearsalList($year,$term, $current_user->ID);
+		$responseList = cr_GetRehearsalList($year,$term, $current_user->ID);
     //return( print_r($responseList,1));
+		if (!$responseList) {
+			$draw = "No rehearsals were found for term $term of $year";
+			return $draw;
+		}
     $draw = '';
 
     $draw.='<table class="cr_innerTable" id="cr_innerTableL_'.$current_user->ID.'">';
