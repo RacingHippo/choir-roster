@@ -28,17 +28,26 @@ function cr_GetList($id, $onlyActive=false) {
 
 function cr_GetRehearsalList($year, $term, $userID) {
     global $wpdb, $table_prefix;
+		$year=intval($year);
+		$term=intval($term);
     $list=array();
-    $sql = "SELECT dates.rehearsalID, user, response, rehearsalDate, location FROM " . $table_prefix . "choir_rehearsalResponses res JOIN " . $table_prefix . "choir_rehearsalDates dates on dates.rehearsalID = res.rehearsalID  WHERE year = " . intval($year) . " AND  term = " . intval($term) . " AND user = " . $userID . " ORDER BY rehearsalDate ASC";
+    $sql = "SELECT dates.rehearsalID, user, response, rehearsalDate, location FROM " . $table_prefix . "choir_rehearsalResponses res JOIN " . $table_prefix . "choir_rehearsalDates dates on dates.rehearsalID = res.rehearsalID  WHERE year = $year AND  term = $term AND user = $userID ORDER BY rehearsalDate ASC";
     $data = $wpdb->get_results($sql);
+		echo " rows=" . count($data);
     if(count($data)>0 && is_array($data)) {
         return($data);
         foreach($data as $r) {
-            $list[$r->rehearsalDate] = $r->response;
+          $list[$r->rehearsalDate] = $r->response;
         }
         return $list;
-    }
-    return false;
+    } else {
+			// can't find any responses for this user for this term, so let's insert the rows for them
+			$query = "INSERT INTO " . $table_prefix . "choir_rehearsalResponses (rehearsalID, user, response) SELECT rehearsalID, $userID, 0 FROM " . $table_prefix . "choir_rehearsalDates WHERE year = $year AND  term = $term";
+			$res=$wpdb->query($query);
+			// now call this function again to display them
+			if($res) return cr_GetRehearsalList($year, $term, $userID);
+		}
+		return false;
 }
 
 // ajax handler to record the user's response to a rehearsal date.
@@ -109,9 +118,9 @@ function cr_AjaxRehearsalResponse($vars) {
 												intval($current_user->ID)
 												);
 		$res=$wpdb->query($query);
-		if($res) return "it thinks it worked";
+		if($res) return "Record updated successfully";
 	}
-	return "Failed: $query";
+	return "Update failed";
 
 }
 

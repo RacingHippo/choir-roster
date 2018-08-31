@@ -53,6 +53,8 @@ $create_table = "CREATE TABLE IF NOT EXISTS `".$table_prefix."choir_roster` (
 	KEY `post` (`post`,`user`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1";
 
+// todo: create rehearsal tables
+
 If (file_exists(ABSPATH . 'wp-admin/includes/upgrade.php')) {
 	require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 }
@@ -63,7 +65,6 @@ If (!dbDelta($create_table)) {
 add_shortcode('choirRoster', 'cr_Main');
 add_shortcode('choirMemberList', 'cr_memberList');
 add_shortcode('choirRehearsalList', 'cr_rehearsalList');
-//add_shortcode('choirEventList', 'cr_eventList');
 
 require_once(ABSPATH . "wp-content/plugins/choir-roster/functions.php");
 
@@ -153,8 +154,7 @@ function cr_rehearsalList($atts) {
 				rid = jQuery(element).attr('title');
 				uid = jQuery(element).attr('id');
 				response = jQuery(element).prop('checked');
-				alert('rid='+rid+ 'uid='+uid+ 'response='+response);
-				jQuery.post('".get_bloginfo('wpurl') ."/wp-content/plugins/choir-roster/rehearsalResponse.php', { cr_response: response, cr_uid: uid, cr_reheasalid: rid }, function(data){alert(data)});
+				jQuery.post('".get_bloginfo('wpurl') ."/wp-content/plugins/choir-roster/rehearsalResponse.php', { cr_response: response, cr_uid: uid, cr_reheasalid: rid });
 				return false;
 			}
 			</script>";
