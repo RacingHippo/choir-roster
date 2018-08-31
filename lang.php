@@ -7,7 +7,12 @@ $cr_lang=array(
 "No"=>"No",
 "Maybe"=>"Maybe",
 "None"=>"???",
+"term"=>"Term",
+"Date"=>"Date",
+"Location"=>"Location",
+"Attending"=>"Attending?",
 "listheader"=>"listheader",
-"question"=>"Are you able to attend this event?"
+"question"=>"Are you able to attend this event?",
+"noRehearsalsForPeriod"=>"No rehearsals were found for this term"
 );
 ?>

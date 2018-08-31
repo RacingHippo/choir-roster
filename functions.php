@@ -221,15 +221,16 @@ function drawSingers($arrUserVoices, $voiceHandle, $voiceName, $responseList, $a
 function cr_DrawRehearsalList($year, $term) {
     global $post, $current_user, $cr_lang;
     //currentUser = $current_user";
+		$draw = "<h2>" . $cr_lang['term'] . " $term of $year</h2>";
 		$responseList = cr_GetRehearsalList($year,$term, $current_user->ID);
     //return( print_r($responseList,1));
 		if (!$responseList) {
-			$draw = "No rehearsals were found for term $term of $year";
+			$draw .= $cr_lang['noRehearsalsForPeriod'];
 			return $draw;
 		}
-    $draw = '';
 
     $draw.='<table class="cr_innerTable" id="cr_innerTableL_'.$current_user->ID.'">';
+		$draw .='<thead><tr><th>' . $cr_lang['Date'] . '</th><th>' . $cr_lang['Location'] . '</th><th>' . $cr_lang['Attending'] . '</th></tr></thead><tbody>';
     for($i=0; $i<count($responseList); $i++){
         $prettyDate = date("D jS M", strtotime($responseList[$i]->rehearsalDate));
 				$draw .= "<tr>";
@@ -240,7 +241,7 @@ function cr_DrawRehearsalList($year, $term) {
         $draw .= "<td><input type='checkbox' name='$rehearsalID' onChange='updateRehearsalResponse(this)' id='".$current_user->ID."' title='$rehearsalID' $response></td>"; //"<td> <input type='checkbox' name='thinkOfAName' value='1'" . $response . "></td>";
 				$draw .= "</tr>";
     }
-    $draw.='</table>';
+    $draw.='</tbody></table>';
 
 
     return $draw;
