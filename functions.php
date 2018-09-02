@@ -54,8 +54,11 @@ function cr_GetRehearsalList($year, $term) {
     global $wpdb, $table_prefix;
 		$year=intval($year);
 		$term=intval($term);
-    $sql = "SELECT dates.rehearsalID, user, response, rehearsalDate, location FROM " . $table_prefix . "choir_rehearsalResponses res LEFT JOIN " . $table_prefix . "choir_rehearsalDates dates on dates.rehearsalID = res.rehearsalID  WHERE year = $year AND  term = $term ORDER BY rehearsalDate ASC";
-    $data = $wpdb->get_results($sql);
+    $sql = "SELECT dates.rehearsalID, rehearsalDate, location
+						FROM  " . $table_prefix . "choir_rehearsalDates dates
+						WHERE year = $year AND  term = $term
+						ORDER BY rehearsalDate ASC";
+		$data = $wpdb->get_results($sql);
     if(count($data)>0 && is_array($data)) {
         return($data);
     } else {
@@ -267,24 +270,85 @@ function cr_DrawRehearsalList($year, $term) {
 }
 
 function cr_DrawRehearsalGrid($year, $term) {
-    global $post, $current_user, $cr_lang;
-		//return "cr_DrawRehearsalGrid($year, $term)";
+    global $post, $current_user, $cr_lang, $table_prefix, $wpdb;
 		$draw = "<h2>" . $cr_lang['term'] . " $term of $year</h2>";
-		$responseList = cr_GetRehearsalList($year,$term);
-    return( print_r($responseList,1));
-		if (!$responseList) {
+		$rehearsalList = cr_GetRehearsalList($year,$term);
+		if (!$rehearsalList) {
 			$draw .= $cr_lang['noRehearsalsForPeriod'];
 			return $draw;
 		}
 
     $draw.='<table class="cr_innerTable" id="cr_innerTableL_'.$current_user->ID.'">';
-		$draw .='<thead><tr>';
-		foreach ($responseList as $key => $value) {
-			echo "k=$key v=$value<br>";
-			// code... '<th>' . $cr_lang['Date'] . '</th><th>' . $cr_lang['Location'] . '</th><th>' . $cr_lang['Attending'] . '</th>
+		$draw .='<thead><tr><th></th>';
+		for($i=0; $i<count($rehearsalList); $i++){
+			$phpdate = strtotime( $rehearsalList[$i]->rehearsalDate );
+			$niceDate = date( 'jS M', $phpdate );
+			$draw .= '<th>' . $niceDate . '</th>';
 		}
 		$draw .='</tr></thead>';
 		$draw .='<tbody>';
+
+		$toteCols = count($rehearsalList) +1;
+
+		// Now get the singers - we shall group them by voice
+		$arrUserVoices = array();
+		$users = get_users() ;
+		foreach ($users as $user) {
+			$v = get_user_meta( $user->ID, 'Voice' );
+			$voice = $v[0];
+			$arrUserVoices[$user->ID] = $voice;
+		}
+
+		$arrVoices = array(
+				'Soprano1' => '1st Soprano',
+				'Soprano2' => '2nd Soprano',
+				'Alto1' => '1st Alto',
+				'Alto2' => '2nd Alto',
+				'Tenor1' => '1st Tenor',
+				'Tenor2' => '2nd Tenor',
+				'Bass1' => '1st Bass',
+				'Bass2' => '2nd Bass',
+				'None' => 'Non-singing members'
+		);
+
+		foreach($arrVoices as $voiceHandle => $voiceName) {
+
+			$draw .="<tr class='voice_$voiceHandle'><td class='voiceHeader' colspan='$toteCols'>$voiceName</td></tr>";
+			foreach($arrUserVoices as $userID => $voice) {
+				if ($voice == $voiceHandle) {
+					$trClass = 'voice_' . $voiceHandle. ' response_Yes';
+					if ($userID == $activeUserID) $trClass .= " featured";
+					$userData=get_userdata( $userID );
+					$draw.="<tr class='$trClass'><td>" . cr_UserData($userID) . "</td>";
+					// Now fetch their responses
+					$sql = "SELECT response
+									from " . $table_prefix . "choir_rehearsalResponses res
+									JOIN " . $table_prefix . "choir_rehearsalDates dates on res.rehearsalID=dates.rehearsalID
+									WHERE res.user=$userID
+									ORDER BY rehearsalDate ASC";
+			    $responses = $wpdb->get_results($sql);
+
+					if(count($responses)==0) {
+						// no table entry - set them blank
+						for($j=0; $j<$toteCols-1;$j++) {
+							$draw .= "<td></td>";
+						}
+					} else {
+						// display the responses
+						foreach ($responses as $response) {
+							// code...
+							$draw .= "<td>" . $response->response . "</td>";
+						}
+					}
+					$draw .= "</tr>";
+
+				}
+			}
+
+		}
+
+
+
 		/*
     for($i=0; $i<count($responseList); $i++){
         $prettyDate = date("D jS M", strtotime($responseList[$i]->rehearsalDate));
@@ -296,7 +360,8 @@ function cr_DrawRehearsalGrid($year, $term) {
         $draw .= "<td><input type='checkbox' name='$rehearsalID' onChange='updateRehearsalResponse(this)' id='".$current_user->ID."' title='$rehearsalID' $response></td>"; //"<td> <input type='checkbox' name='thinkOfAName' value='1'" . $response . "></td>";
 				$draw .= "</tr>";
     }
-  */  $draw.='</tbody></table>';
+  */
+	$draw.='</tbody></table>';
 
 
     return $draw;
