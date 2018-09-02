@@ -26,19 +26,14 @@ function cr_GetList($id, $onlyActive=false) {
 	return false;
 }
 
-function cr_GetRehearsalList($year, $term, $userID) {
+function cr_GetRehearsalListResponses($year, $term, $userID) {
     global $wpdb, $table_prefix;
 		$year=intval($year);
 		$term=intval($term);
-    $list=array();
     $sql = "SELECT dates.rehearsalID, user, response, rehearsalDate, location FROM " . $table_prefix . "choir_rehearsalResponses res JOIN " . $table_prefix . "choir_rehearsalDates dates on dates.rehearsalID = res.rehearsalID  WHERE year = $year AND  term = $term AND user = $userID ORDER BY rehearsalDate ASC";
     $data = $wpdb->get_results($sql);
     if(count($data)>0 && is_array($data)) {
         return($data);
-        foreach($data as $r) {
-          $list[$r->rehearsalDate] = $r->response;
-        }
-        return $list;
     } else {
 			// can't find any responses for this user for this term, so let's insert the rows for them
 			// but first, let's check that rehearsals exist for this year/term...
@@ -50,14 +45,38 @@ function cr_GetRehearsalList($year, $term, $userID) {
 			$query = "INSERT INTO " . $table_prefix . "choir_rehearsalResponses (rehearsalID, user, response) SELECT rehearsalID, $userID, 0 FROM " . $table_prefix . "choir_rehearsalDates WHERE year = $year AND  term = $term";
 			$res=$wpdb->query($query);
 			// now call this function again to display them
-			if($res) return cr_GetRehearsalList($year, $term, $userID);
+			if($res) return cr_GetRehearsalListResponses($year, $term, $userID);
+		}
+		return false;
+}
+
+function cr_GetRehearsalList($year, $term) {
+    global $wpdb, $table_prefix;
+		$year=intval($year);
+		$term=intval($term);
+    $sql = "SELECT dates.rehearsalID, user, response, rehearsalDate, location FROM " . $table_prefix . "choir_rehearsalResponses res LEFT JOIN " . $table_prefix . "choir_rehearsalDates dates on dates.rehearsalID = res.rehearsalID  WHERE year = $year AND  term = $term ORDER BY rehearsalDate ASC";
+    $data = $wpdb->get_results($sql);
+    if(count($data)>0 && is_array($data)) {
+        return($data);
+    } else {
+			// can't find any responses for this user for this term, so let's insert the rows for them
+			// but first, let's check that rehearsals exist for this year/term...
+			$sql = "SELECT rehearsalID FROM " . $table_prefix . "choir_rehearsalDates dates WHERE year = $year AND  term = $term";
+	    $data = $wpdb->get_results($sql);
+			if(count($data)==0) {
+				return false;
+			}
+			$query = "INSERT INTO " . $table_prefix . "choir_rehearsalResponses (rehearsalID, user, response) SELECT rehearsalID, $userID, 0 FROM " . $table_prefix . "choir_rehearsalDates WHERE year = $year AND  term = $term";
+			$res=$wpdb->query($query);
+			// now call this function again to display them
+			if($res) return cr_GetRehearsalListResponses($year, $term, $userID);
 		}
 		return false;
 }
 
 // ajax handler to record the user's response to a rehearsal date.
 function cr_RecordRehearsalResponse($userID, $rehearsalID, $response) {
-
+	// todo why is this empty?
 }
 
 function cr_ResponseName($response) {
@@ -222,7 +241,7 @@ function cr_DrawRehearsalList($year, $term) {
     global $post, $current_user, $cr_lang;
     //currentUser = $current_user";
 		$draw = "<h2>" . $cr_lang['term'] . " $term of $year</h2>";
-		$responseList = cr_GetRehearsalList($year,$term, $current_user->ID);
+		$responseList = cr_GetRehearsalListResponses($year,$term, $current_user->ID);
     //return( print_r($responseList,1));
 		if (!$responseList) {
 			$draw .= $cr_lang['noRehearsalsForPeriod'];
@@ -242,6 +261,42 @@ function cr_DrawRehearsalList($year, $term) {
 				$draw .= "</tr>";
     }
     $draw.='</tbody></table>';
+
+
+    return $draw;
+}
+
+function cr_DrawRehearsalGrid($year, $term) {
+    global $post, $current_user, $cr_lang;
+		//return "cr_DrawRehearsalGrid($year, $term)";
+		$draw = "<h2>" . $cr_lang['term'] . " $term of $year</h2>";
+		$responseList = cr_GetRehearsalList($year,$term);
+    return( print_r($responseList,1));
+		if (!$responseList) {
+			$draw .= $cr_lang['noRehearsalsForPeriod'];
+			return $draw;
+		}
+
+    $draw.='<table class="cr_innerTable" id="cr_innerTableL_'.$current_user->ID.'">';
+		$draw .='<thead><tr>';
+		foreach ($responseList as $key => $value) {
+			echo "k=$key v=$value<br>";
+			// code... '<th>' . $cr_lang['Date'] . '</th><th>' . $cr_lang['Location'] . '</th><th>' . $cr_lang['Attending'] . '</th>
+		}
+		$draw .='</tr></thead>';
+		$draw .='<tbody>';
+		/*
+    for($i=0; $i<count($responseList); $i++){
+        $prettyDate = date("D jS M", strtotime($responseList[$i]->rehearsalDate));
+				$draw .= "<tr>";
+				$draw .= "<td>" . $prettyDate . "</td>";
+				$draw .= "<td>" . $responseList[$i]->location . "</td>";
+				$response = $responseList[$i]->response ? 'checked' : '';
+				$rehearsalID=$responseList[$i]->rehearsalID;
+        $draw .= "<td><input type='checkbox' name='$rehearsalID' onChange='updateRehearsalResponse(this)' id='".$current_user->ID."' title='$rehearsalID' $response></td>"; //"<td> <input type='checkbox' name='thinkOfAName' value='1'" . $response . "></td>";
+				$draw .= "</tr>";
+    }
+  */  $draw.='</tbody></table>';
 
 
     return $draw;

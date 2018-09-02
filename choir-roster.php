@@ -20,7 +20,7 @@ Plugin Name: Choir Roster
 Plugin URI:
 Description: Choir roster and event attendance list. You can add it to any post or page.
 Author: RacingHippo
-Version: 1.1
+Version: 1.2
 Author URI:
 License: GPLv2
 */
@@ -61,9 +61,12 @@ If (file_exists(ABSPATH . 'wp-admin/includes/upgrade.php')) {
 If (!dbDelta($create_table)) {
 	echo "Choir Roster error: db query failed";
 }
-
-add_shortcode('choirRoster', 'cr_Main');
+/****************************************
+**********    shortcodes   **************
+*****************************************/
+add_shortcode('choirRoster', 'cr_EventAttendanceResponder');
 add_shortcode('choirMemberList', 'cr_memberList');
+add_shortcode('choirRehearsalResponder', 'cr_rehearsalResponder');
 add_shortcode('choirRehearsalList', 'cr_rehearsalList');
 
 require_once(ABSPATH . "wp-content/plugins/choir-roster/functions.php");
@@ -71,8 +74,10 @@ require_once(ABSPATH . "wp-content/plugins/choir-roster/functions.php");
 wp_enqueue_script("jquery");
 add_action("wp_head", "cr_AddCss");
 
-
-function cr_Main() {
+/*****************************
+Event attendance functions
+******************************/
+function cr_EventAttendanceResponder() {
 	global $wpdb, $current_user, $cr_lang, $post;
 
 	$return = '<div id="cr_table_cont_'.$post->ID.'" class="cr_table_cont">';
@@ -126,43 +131,6 @@ function cr_Main() {
 	return $return;
 }
 
-/**************************************************/
-function cr_memberList() {
-	global $wpdb, $current_user, $cr_lang, $post;
-
-	$return = '<div id="cr_table_cont_'.$post->ID.'" class="cr_table_cont">';
-
-	$return.='<div id="cr_cont_'.$post->ID.'">'.cr_simpleList().'</div></div>';
-
-	return $return;
-}
-
-
-function cr_rehearsalList($atts) {
-    global $wpdb, $current_user, $cr_lang, $post;
-    $params = shortcode_atts( array(
-        'year' => '2010',
-        'term' => '0',
-    ), $atts );
-
-    $return = '<div id="cr_table_cont_'.$post->ID.'" class="cr_table_cont">';
-
-    $return.='<div id="cr_cont_'.$post->ID.'">'.cr_DrawRehearsalList($params['year'],$params['term']).'</div></div>';
-
-    $return .= "<script language='javascript'>
-			function updateRehearsalResponse(element) {
-				rid = jQuery(element).attr('title');
-				uid = jQuery(element).attr('id');
-				response = jQuery(element).prop('checked');
-				jQuery.post('".get_bloginfo('wpurl') ."/wp-content/plugins/choir-roster/rehearsalResponse.php', { cr_response: response, cr_uid: uid, cr_reheasalid: rid });
-				return false;
-			}
-			</script>";
-
-    return $return;
-}
-
-
 /************************************************/
 function cr_eventList() {
 	global $wpdb, $current_user, $cr_lang;
@@ -201,5 +169,71 @@ function cr_eventList() {
 
 	return $return;
 }
+
+
+/**********************
+rehearsal functions
+************************/
+function cr_rehearsalResponder($atts) {
+    global $wpdb, $current_user, $cr_lang, $post;
+    $params = shortcode_atts( array(
+        'year' => '2010',
+        'term' => '0',
+    ), $atts );
+
+    $return = '<div id="cr_table_cont_'.$post->ID.'" class="cr_table_cont">';
+
+    $return.='<div id="cr_cont_'.$post->ID.'">'.cr_DrawRehearsalList($params['year'],$params['term']).'</div></div>';
+
+    $return .= "<script language='javascript'>
+			function updateRehearsalResponse(element) {
+				rid = jQuery(element).attr('title');
+				uid = jQuery(element).attr('id');
+				response = jQuery(element).prop('checked');
+				jQuery.post('".get_bloginfo('wpurl') ."/wp-content/plugins/choir-roster/rehearsalResponse.php', { cr_response: response, cr_uid: uid, cr_reheasalid: rid });
+				return false;
+			}
+			</script>";
+
+    return $return;
+}
+
+
+function cr_rehearsalList($atts) {
+    global $wpdb, $current_user, $cr_lang, $post;
+		$params = shortcode_atts( array(
+        'year' => '2010',
+        'term' => '0',
+    ), $atts );
+
+    $return = '<div id="cr_table_cont_'.$post->ID.'" class="cr_table_cont">';
+
+    $return.='<div id="cr_cont_'.$post->ID.'">'.cr_DrawRehearsalGrid($params['year'],$params['term']).'</div></div>';
+
+    $return .= "<script language='javascript'>
+			function updateRehearsalResponse(element) {
+				rid = jQuery(element).attr('title');
+				uid = jQuery(element).attr('id');
+				response = jQuery(element).prop('checked');
+				jQuery.post('".get_bloginfo('wpurl') ."/wp-content/plugins/choir-roster/rehearsalResponse.php', { cr_response: response, cr_uid: uid, cr_reheasalid: rid });
+				return false;
+			}
+			</script>";
+
+    return $return;
+}
+
+
+/**************************************************/
+function cr_memberList() {
+	global $wpdb, $current_user, $cr_lang, $post;
+
+	$return = '<div id="cr_table_cont_'.$post->ID.'" class="cr_table_cont">';
+
+	$return.='<div id="cr_cont_'.$post->ID.'">'.cr_simpleList().'</div></div>';
+
+	return $return;
+}
+
 
 ?>
