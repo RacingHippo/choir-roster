@@ -336,8 +336,8 @@ function cr_DrawRehearsalGrid($year, $term) {
 					} else {
 						// display the responses
 						foreach ($responses as $response) {
-							// code...
-							$draw .= "<td>" . $response->response . "</td>";
+							$yaynay = $response->response==1 ? 'Yes' : 'No';
+							$draw .= "<td>$yaynay</td>";
 						}
 					}
 					$draw .= "</tr>";
