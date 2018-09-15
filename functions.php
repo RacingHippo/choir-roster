@@ -307,8 +307,7 @@ function cr_DrawRehearsalGrid($year, $term) {
 				'Tenor1' => '1st Tenor',
 				'Tenor2' => '2nd Tenor',
 				'Bass1' => '1st Bass',
-				'Bass2' => '2nd Bass',
-				'None' => 'Non-singing members'
+				'Bass2' => '2nd Bass'
 		);
 
 		foreach($arrVoices as $voiceHandle => $voiceName) {
@@ -336,8 +335,8 @@ function cr_DrawRehearsalGrid($year, $term) {
 					} else {
 						// display the responses
 						foreach ($responses as $response) {
-							$yaynay = $response->response==1 ? 'Yes' : 'No';
-							$draw .= "<td>$yaynay</td>";
+							$yaynay = $response->response==1 ? '<span style="color: #00AA00;" class="fas fa-check fa-2x"></span>' : '<span style="color: #ff0000;" class="fas fa-times fa-2x"></span>';
+							$draw .= "<td align='center'>$yaynay</td>";
 						}
 					}
 					$draw .= "</tr>";
