@@ -30,14 +30,17 @@ function cr_GetRehearsalListResponses($year, $term, $userID) {
     global $wpdb, $table_prefix;
 		$year=intval($year);
 		$term=intval($term);
-    $sql = "SELECT dates.rehearsalID, user, response, rehearsalDate, location FROM " . $table_prefix . "choir_rehearsalResponses res JOIN " . $table_prefix . "choir_rehearsalDates dates on dates.rehearsalID = res.rehearsalID  WHERE year = $year AND  term = $term AND user = $userID ORDER BY rehearsalDate ASC";
+
+		$termID=getTermID($year, $term);
+
+    $sql = "SELECT dates.rehearsalID, user, response, rehearsalDate, location FROM " . $table_prefix . "choir_rehearsalResponses res JOIN " . $table_prefix . "choir_rehearsalDates dates on dates.rehearsalID = res.rehearsalID WHERE dates.termID=$termID AND user = $userID ORDER BY rehearsalDate ASC";
     $data = $wpdb->get_results($sql);
     if(count($data)>0 && is_array($data)) {
         return($data);
     } else {
 			// can't find any responses for this user for this term, so let's insert the rows for them
 			// but first, let's check that rehearsals exist for this year/term...
-			$sql = "SELECT rehearsalID FROM " . $table_prefix . "choir_rehearsalDates dates WHERE year = $year AND  term = $term";
+			$sql = "SELECT rehearsalID FROM " . $table_prefix . "choir_rehearsalDates dates  WHERE dates.termID = $termID";
 	    $data = $wpdb->get_results($sql);
 			if(count($data)==0) {
 				return false;
@@ -54,26 +57,16 @@ function cr_GetRehearsalList($year, $term) {
     global $wpdb, $table_prefix;
 		$year=intval($year);
 		$term=intval($term);
+		$termID=getTermID($year, $term);
+
     $sql = "SELECT dates.rehearsalID, rehearsalDate, location
 						FROM  " . $table_prefix . "choir_rehearsalDates dates
-						WHERE year = $year AND  term = $term
+						WHERE termID = $termID
 						ORDER BY rehearsalDate ASC";
 		$data = $wpdb->get_results($sql);
     if(count($data)>0 && is_array($data)) {
         return($data);
-    } else {
-			// can't find any responses for this user for this term, so let's insert the rows for them
-			// but first, let's check that rehearsals exist for this year/term...
-			$sql = "SELECT rehearsalID FROM " . $table_prefix . "choir_rehearsalDates dates WHERE year = $year AND  term = $term";
-	    $data = $wpdb->get_results($sql);
-			if(count($data)==0) {
-				return false;
-			}
-			$query = "INSERT INTO " . $table_prefix . "choir_rehearsalResponses (rehearsalID, user, response) SELECT rehearsalID, $userID, 0 FROM " . $table_prefix . "choir_rehearsalDates WHERE year = $year AND  term = $term";
-			$res=$wpdb->query($query);
-			// now call this function again to display them
-			if($res) return cr_GetRehearsalListResponses($year, $term, $userID);
-		}
+    }
 		return false;
 }
 
@@ -117,6 +110,14 @@ function cr_AddResponse($post, $response, $userID=0) {
 		if($res) return true;
 	}
 	return false;
+}
+
+function getTermID($year, $term) {
+	global $wpdb, $table_prefix;
+	// get the termID
+	$sql = "SELECT terms.termID FROM " . $table_prefix . "choir_terms terms  WHERE terms.year = $year AND  terms.termNumber = $term ";
+	$data = $wpdb->get_results($sql);
+	return $data[0]->termID;
 }
 
 function cr_AddCss(){
