@@ -243,7 +243,7 @@ function drawSingers($arrUserVoices, $voiceHandle, $voiceName, $responseList, $a
 function cr_DrawRehearsalList($year, $term) {
     global $post, $current_user, $cr_lang;
     //currentUser = $current_user";
-		$draw = "<h2>" . $cr_lang['term'] . " $term of $year</h2>";
+		$draw = "<h2>" . $cr_lang['term'] . " $term of $year - {$current_user->display_name}</h2>";
 		$responseList = cr_GetRehearsalListResponses($year,$term, $current_user->ID);
     //return( print_r($responseList,1));
 		if (!$responseList) {
