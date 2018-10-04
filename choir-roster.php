@@ -68,6 +68,8 @@ add_shortcode('choirRoster', 'cr_EventAttendanceResponder');
 add_shortcode('choirMemberList', 'cr_memberList');
 add_shortcode('choirRehearsalResponder', 'cr_rehearsalResponder');
 add_shortcode('choirRehearsalList', 'cr_rehearsalList');
+add_shortcode('choirRehearsalSummary', 'cr_rehearsalSummary');
+
 
 require_once(ABSPATH . "wp-content/plugins/choir-roster/functions.php");
 
@@ -223,6 +225,29 @@ function cr_rehearsalList($atts) {
     return $return;
 }
 
+function cr_rehearsalSummary($atts) {
+    global $wpdb, $current_user, $cr_lang, $post;
+		$params = shortcode_atts( array(
+        'year' => '2010',
+        'term' => '0',
+    ), $atts );
+
+    $return = '<div id="cr_table_cont_'.$post->ID.'" class="cr_table_cont">';
+
+    $return.='<div id="cr_cont_'.$post->ID.'">'.cr_DrawRehearsalSummary($params['year'],$params['term']).'</div></div>';
+
+    $return .= "<script language='javascript'>
+			function updateRehearsalResponse(element) {
+				rid = jQuery(element).attr('title');
+				uid = jQuery(element).attr('id');
+				response = jQuery(element).prop('checked');
+				jQuery.post('".get_bloginfo('wpurl') ."/wp-content/plugins/choir-roster/rehearsalResponse.php', { cr_response: response, cr_uid: uid, cr_reheasalid: rid });
+				return false;
+			}
+			</script>";
+
+    return $return;
+}
 
 /**************************************************/
 function cr_memberList() {

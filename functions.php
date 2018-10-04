@@ -367,6 +367,108 @@ function cr_DrawRehearsalGrid($year, $term) {
     return $draw;
 }
 
+/*********/
+function cr_DrawRehearsalSummary($year, $term) {
+    global $post, $current_user, $cr_lang, $table_prefix, $wpdb;
+
+		$arrVoices = array(
+				'Soprano1' => '1st Soprano',
+				'Soprano2' => '2nd Soprano',
+				'Alto1' => '1st Alto',
+				'Alto2' => '2nd Alto',
+				'Tenor1' => '1st Tenor',
+				'Tenor2' => '2nd Tenor',
+				'Bass1' => '1st Bass',
+				'Bass2' => '2nd Bass',
+				'None' => 'Non-singing members'
+		);
+
+		$draw = "<h2>" . $cr_lang['term'] . " $term of $year</h2>";
+		$rehearsalList = cr_GetRehearsalList($year,$term);
+		if (!$rehearsalList) {
+			$draw .= $cr_lang['noRehearsalsForPeriod'];
+			return $draw;
+		}
+
+    $draw.='<table class="cr_innerTable" id="cr_innerTableL_'.$current_user->ID.'">';
+		//  header with rehearsal dates
+		$draw .='<thead><tr><th></th>';
+		for($i=0; $i<count($rehearsalList); $i++){
+			$phpdate = strtotime( $rehearsalList[$i]->rehearsalDate );
+			$niceDate = date( 'jS M', $phpdate );
+			$draw .= '<th>' . $niceDate . '</th>';
+		}
+		$draw .='</tr></thead>';
+		$toteCols = count($rehearsalList) +1;
+
+		// body
+		$draw .='<tbody>';
+
+		// Now get the singers - we shall group them by voice
+		$arrUserVoices = array();
+		$users = get_users() ;
+		foreach ($users as $user) {
+			$v = get_user_meta( $user->ID, 'Voice' );
+			$voice = $v[0];
+			$arrUserVoices[$user->ID] = $voice;
+		}
+
+		// array of voice parts + rehearsals
+		$attendeeCount = array(
+			'Soprano1' => array(),
+			'Soprano2' => array(),
+			'Alto1' => array(),
+			'Alto2' => array(),
+			'Tenor1' => array(),
+			'Tenor2' => array(),
+			'Bass1' => array(),
+			'Bass2' => array(),
+			'None' => array()
+		);
+
+
+		// now go through each voice, check the response and update the subtotal for the voice...
+		foreach($arrUserVoices as $userID => $voice) {
+
+			// fetch their responses : todo: restrict to year and term
+			$sql = "SELECT dates.rehearsalID, response
+							from " . $table_prefix . "choir_rehearsalResponses res
+							JOIN " . $table_prefix . "choir_rehearsalDates dates on res.rehearsalID=dates.rehearsalID
+							WHERE res.user=$userID
+							ORDER BY rehearsalDate ASC";
+	    $responses = $wpdb->get_results($sql);
+
+			if(count($responses)!=0) {
+				// sum the responses
+				foreach ($responses as $response) {
+					$attendeeCount[$voice][$response->rehearsalID] += $response->response;
+				}
+			}
+
+		} // foreach $arrUserVoices
+//print_r($attendeeCount);
+
+		foreach($arrVoices as $voiceHandle => $voiceName) {
+
+			// first col is voice type
+			$draw .="<tr class='voice_$voiceHandle'><td >$voiceName</td>";
+
+			// rest of the cols are the rehearsal date totals
+			foreach ($rehearsalList as $rehearsal) {
+				//echo "rehearsalID=" . $rehearsal->rehearsalID . "<br>";
+				$draw .= "<td>" . $attendeeCount[$voiceHandle][$rehearsal->rehearsalID] . "</td>";
+			}
+			$draw .= "</tr>";
+		}
+
+	$draw.='</tbody></table>';
+
+
+    return $draw;
+}
+
+
+
 
 /********************************************/
 function cr_simpleList() {
