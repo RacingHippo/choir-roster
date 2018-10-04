@@ -30,14 +30,17 @@ function cr_GetRehearsalListResponses($year, $term, $userID) {
     global $wpdb, $table_prefix;
 		$year=intval($year);
 		$term=intval($term);
-    $sql = "SELECT dates.rehearsalID, user, response, rehearsalDate, location FROM " . $table_prefix . "choir_rehearsalResponses res JOIN " . $table_prefix . "choir_rehearsalDates dates on dates.rehearsalID = res.rehearsalID  WHERE year = $year AND  term = $term AND user = $userID ORDER BY rehearsalDate ASC";
+
+		$termID=getTermID($year, $term);
+
+    $sql = "SELECT dates.rehearsalID, user, response, rehearsalDate, location FROM " . $table_prefix . "choir_rehearsalResponses res JOIN " . $table_prefix . "choir_rehearsalDates dates on dates.rehearsalID = res.rehearsalID WHERE dates.termID=$termID AND user = $userID ORDER BY rehearsalDate ASC";
     $data = $wpdb->get_results($sql);
     if(count($data)>0 && is_array($data)) {
         return($data);
     } else {
 			// can't find any responses for this user for this term, so let's insert the rows for them
 			// but first, let's check that rehearsals exist for this year/term...
-			$sql = "SELECT rehearsalID FROM " . $table_prefix . "choir_rehearsalDates dates WHERE year = $year AND  term = $term";
+			$sql = "SELECT rehearsalID FROM " . $table_prefix . "choir_rehearsalDates dates  WHERE dates.termID = $termID";
 	    $data = $wpdb->get_results($sql);
 			if(count($data)==0) {
 				return false;
@@ -54,26 +57,16 @@ function cr_GetRehearsalList($year, $term) {
     global $wpdb, $table_prefix;
 		$year=intval($year);
 		$term=intval($term);
+		$termID=getTermID($year, $term);
+
     $sql = "SELECT dates.rehearsalID, rehearsalDate, location
 						FROM  " . $table_prefix . "choir_rehearsalDates dates
-						WHERE year = $year AND  term = $term
+						WHERE termID = $termID
 						ORDER BY rehearsalDate ASC";
 		$data = $wpdb->get_results($sql);
     if(count($data)>0 && is_array($data)) {
         return($data);
-    } else {
-			// can't find any responses for this user for this term, so let's insert the rows for them
-			// but first, let's check that rehearsals exist for this year/term...
-			$sql = "SELECT rehearsalID FROM " . $table_prefix . "choir_rehearsalDates dates WHERE year = $year AND  term = $term";
-	    $data = $wpdb->get_results($sql);
-			if(count($data)==0) {
-				return false;
-			}
-			$query = "INSERT INTO " . $table_prefix . "choir_rehearsalResponses (rehearsalID, user, response) SELECT rehearsalID, $userID, 0 FROM " . $table_prefix . "choir_rehearsalDates WHERE year = $year AND  term = $term";
-			$res=$wpdb->query($query);
-			// now call this function again to display them
-			if($res) return cr_GetRehearsalListResponses($year, $term, $userID);
-		}
+    }
 		return false;
 }
 
@@ -117,6 +110,14 @@ function cr_AddResponse($post, $response, $userID=0) {
 		if($res) return true;
 	}
 	return false;
+}
+
+function getTermID($year, $term) {
+	global $wpdb, $table_prefix;
+	// get the termID
+	$sql = "SELECT terms.termID FROM " . $table_prefix . "choir_terms terms  WHERE terms.year = $year AND  terms.termNumber = $term ";
+	$data = $wpdb->get_results($sql);
+	return $data[0]->termID;
 }
 
 function cr_AddCss(){
@@ -243,7 +244,7 @@ function drawSingers($arrUserVoices, $voiceHandle, $voiceName, $responseList, $a
 function cr_DrawRehearsalList($year, $term) {
     global $post, $current_user, $cr_lang;
     //currentUser = $current_user";
-		$draw = "<h2>" . $cr_lang['term'] . " $term of $year</h2>";
+		$draw = "<h2>" . $cr_lang['term'] . " $term of $year - {$current_user->display_name}</h2>";
 		$responseList = cr_GetRehearsalListResponses($year,$term, $current_user->ID);
     //return( print_r($responseList,1));
 		if (!$responseList) {
@@ -307,8 +308,7 @@ function cr_DrawRehearsalGrid($year, $term) {
 				'Tenor1' => '1st Tenor',
 				'Tenor2' => '2nd Tenor',
 				'Bass1' => '1st Bass',
-				'Bass2' => '2nd Bass',
-				'None' => 'Non-singing members'
+				'Bass2' => '2nd Bass'
 		);
 
 		foreach($arrVoices as $voiceHandle => $voiceName) {
@@ -336,8 +336,8 @@ function cr_DrawRehearsalGrid($year, $term) {
 					} else {
 						// display the responses
 						foreach ($responses as $response) {
-							$yaynay = $response->response==1 ? 'Yes' : 'No';
-							$draw .= "<td>$yaynay</td>";
+							$yaynay = $response->response==1 ? '<span style="color: #00AA00;" class="fas fa-check fa-2x"></span>' : '<span style="color: #ff0000;" class="fas fa-times fa-2x"></span>';
+							$draw .= "<td align='center'>$yaynay</td>";
 						}
 					}
 					$draw .= "</tr>";

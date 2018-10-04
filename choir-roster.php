@@ -208,6 +208,7 @@ function cr_rehearsalList($atts) {
         'term' => '0',
     ), $atts );
 
+
     $return = '<div id="cr_table_cont_'.$post->ID.'" class="cr_table_cont">';
 
     $return.='<div id="cr_cont_'.$post->ID.'">'.cr_DrawRehearsalGrid($params['year'],$params['term']).'</div></div>';
@@ -260,5 +261,13 @@ function cr_memberList() {
 	return $return;
 }
 
+
+
+function addHeadStuff() {
+?>
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+<?php
+}
+add_action('wp_head', 'addHeadStuff');
 
 ?>
