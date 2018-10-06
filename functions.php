@@ -347,20 +347,6 @@ function cr_DrawRehearsalGrid($year, $term) {
 
 		}
 
-
-
-		/*
-    for($i=0; $i<count($responseList); $i++){
-        $prettyDate = date("D jS M", strtotime($responseList[$i]->rehearsalDate));
-				$draw .= "<tr>";
-				$draw .= "<td>" . $prettyDate . "</td>";
-				$draw .= "<td>" . $responseList[$i]->location . "</td>";
-				$response = $responseList[$i]->response ? 'checked' : '';
-				$rehearsalID=$responseList[$i]->rehearsalID;
-        $draw .= "<td><input type='checkbox' name='$rehearsalID' onChange='updateRehearsalResponse(this)' id='".$current_user->ID."' title='$rehearsalID' $response></td>"; //"<td> <input type='checkbox' name='thinkOfAName' value='1'" . $response . "></td>";
-				$draw .= "</tr>";
-    }
-  */
 	$draw.='</tbody></table>';
 
 
@@ -372,15 +358,14 @@ function cr_DrawRehearsalSummary($year, $term) {
     global $post, $current_user, $cr_lang, $table_prefix, $wpdb;
 
 		$arrVoices = array(
-				'Soprano1' => '1st Soprano',
-				'Soprano2' => '2nd Soprano',
+				'Soprano1' => '1st Sop',
+				'Soprano2' => '2nd Sop',
 				'Alto1' => '1st Alto',
 				'Alto2' => '2nd Alto',
 				'Tenor1' => '1st Tenor',
 				'Tenor2' => '2nd Tenor',
 				'Bass1' => '1st Bass',
-				'Bass2' => '2nd Bass',
-				'None' => 'Non-singing members'
+				'Bass2' => '2nd Bass'
 		);
 
 		$draw = "<h2>" . $cr_lang['term'] . " $term of $year</h2>";
@@ -406,11 +391,13 @@ function cr_DrawRehearsalSummary($year, $term) {
 
 		// Now get the singers - we shall group them by voice
 		$arrUserVoices = array();
+		$arrVoiceTotals = array();
 		$users = get_users() ;
 		foreach ($users as $user) {
 			$v = get_user_meta( $user->ID, 'Voice' );
 			$voice = $v[0];
 			$arrUserVoices[$user->ID] = $voice;
+			$arrVoiceTotals[$voice] +=1;
 		}
 
 		// array of voice parts + rehearsals
@@ -455,8 +442,11 @@ function cr_DrawRehearsalSummary($year, $term) {
 
 			// rest of the cols are the rehearsal date totals
 			foreach ($rehearsalList as $rehearsal) {
-				//echo "rehearsalID=" . $rehearsal->rehearsalID . "<br>";
-				$draw .= "<td>" . $attendeeCount[$voiceHandle][$rehearsal->rehearsalID] . "</td>";
+				$singerCount = $attendeeCount[$voiceHandle][$rehearsal->rehearsalID];
+				// luminosity of cell colour depends on percentage of attendees
+				// use a range of 59-99, so [0-40]+59
+				$lum=99 - ($singerCount/$arrVoiceTotals[$voiceHandle])*60;
+				$draw .= "<td style='text-align:center;background: hsl(122, 69%, " . $lum . "%)'>" . $singerCount . "/" . $arrVoiceTotals[$voiceHandle] . "</td>";
 			}
 			$draw .= "</tr>";
 		}
