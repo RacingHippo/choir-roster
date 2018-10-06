@@ -241,8 +241,15 @@ function drawSingers($arrUserVoices, $voiceHandle, $voiceName, $responseList, $a
 	return $draw;
 }
 
-function cr_DrawRehearsalList($year, $term) {
+function cr_DrawRehearsalList($year=0, $term=0) {
     global $post, $current_user, $cr_lang;
+		if ($year==0 || $term==0) {
+			// not given, so we'll work out what the current/next term is....
+			$currentTerm = cr_GetCurrentTermAndYear();
+			$year = $currentTerm['year'];
+			$term = $currentTerm['term'];
+		}
+
     //currentUser = $current_user";
 		$draw = "<h2>" . $cr_lang['term'] . " $term of $year - {$current_user->display_name}</h2>";
 		$responseList = cr_GetRehearsalListResponses($year,$term, $current_user->ID);
@@ -270,8 +277,15 @@ function cr_DrawRehearsalList($year, $term) {
     return $draw;
 }
 
-function cr_DrawRehearsalGrid($year, $term) {
+function cr_DrawRehearsalGrid($year=0, $term=0) {
     global $post, $current_user, $cr_lang, $table_prefix, $wpdb;
+		if ($year==0 || $term==0) {
+			// not given, so we'll work out what the current/next term is....
+			$currentTerm = cr_GetCurrentTermAndYear();
+			$year = $currentTerm['year'];
+			$term = $currentTerm['term'];
+		}
+
 		$draw = "<h2>" . $cr_lang['term'] . " $term of $year</h2>";
 		$rehearsalList = cr_GetRehearsalList($year,$term);
 		if (!$rehearsalList) {
@@ -353,9 +367,16 @@ function cr_DrawRehearsalGrid($year, $term) {
     return $draw;
 }
 
+
 /*********/
-function cr_DrawRehearsalSummary($year, $term) {
+function cr_DrawRehearsalSummary($year=0, $term=0) {
     global $post, $current_user, $cr_lang, $table_prefix, $wpdb;
+		if ($year==0 || $term==0) {
+			// not given, so we'll work out what the current/next term is....
+			$currentTerm = cr_GetCurrentTermAndYear();
+			$year = $currentTerm['year'];
+			$term = $currentTerm['term'];
+		}
 
 		$arrVoices = array(
 				'Soprano1' => '1st Sop',
@@ -520,6 +541,17 @@ function drawSection($arrUserVoices, $voiceHandle, $voiceName) {
 	return $draw;
 }
 
+
+/************************************/
+function cr_GetCurrentTermAndYear(){
+	global $table_prefix, $wpdb;
+	$sql = "SELECT min(dates.termID), terms.year, terms.termNumber
+					FROM  " . $table_prefix . "choir_rehearsalDates dates
+					join " . $table_prefix . "choir_terms terms on terms.termID=dates.termID
+					WHERE rehearsalDate>NOW()";
+	$data = $wpdb->get_results($sql);
+	return(array('year'=>$data[0]->year, 'term'=>$data[0]->termNumber));
+}
 
 
 ?>
