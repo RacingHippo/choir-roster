@@ -286,19 +286,23 @@ function cr_DrawRehearsalGrid($year=0, $term=0) {
 			$term = $currentTerm['term'];
 		}
 
-		$draw = "<h2>" . $cr_lang['term'] . " $term of $year</h2>";
+		$draw = "<h2>" . $cr_lang['term'] . " $term " . $cr_lang['of'] . " $year - " . $cr_lang['plannedAttendance'] . "</h2>";
 		$rehearsalList = cr_GetRehearsalList($year,$term);
 		if (!$rehearsalList) {
 			$draw .= $cr_lang['noRehearsalsForPeriod'];
 			return $draw;
 		}
 
+		$colStyle=array();
     $draw.='<table class="cr_innerTable" id="cr_innerTableL_'.$current_user->ID.'">';
 		$draw .='<thead><tr><th></th>';
 		for($i=0; $i<count($rehearsalList); $i++){
+			// format the date
 			$phpdate = strtotime( $rehearsalList[$i]->rehearsalDate );
 			$niceDate = date( 'jS M', $phpdate );
-			$draw .= '<th>' . $niceDate . '</th>';
+			// past or future?
+			$colStyle[$i] = $phpdate<time() ? 'inThePast' : 'inTheFuture';
+			$draw .= "<th class='" . $colStyle[$i] . "'>" . $niceDate . "</th>";
 		}
 		$draw .='</tr></thead>';
 		$draw .='<tbody>';
@@ -349,9 +353,18 @@ function cr_DrawRehearsalGrid($year=0, $term=0) {
 						}
 					} else {
 						// display the responses
+						$i=0;
 						foreach ($responses as $response) {
-							$yaynay = $response->response==1 ? '<span style="color: #00AA00;" class="fas fa-check fa-2x"></span>' : '<span style="color: #ff0000;" class="fas fa-times fa-2x"></span>';
+							if ($colStyle[$i]=='inThePast') {
+								$yayColour = '#777777';
+								$nayColour = '#777777';
+							} else {
+								$yayColour = '#00AA00';
+								$nayColour = '#ff0000';
+							}
+							$yaynay = $response->response==1 ? "<span style='color: $yayColour;' class='fas fa-check fa-2x'></span>" : "<span style='color: $nayColour;' class='fas fa-times fa-2x'></span>";
 							$draw .= "<td align='center'>$yaynay</td>";
+							$i++;
 						}
 					}
 					$draw .= "</tr>";
@@ -400,9 +413,13 @@ function cr_DrawRehearsalSummary($year=0, $term=0) {
 		//  header with rehearsal dates
 		$draw .='<thead><tr><th></th>';
 		for($i=0; $i<count($rehearsalList); $i++){
+			// format the date
 			$phpdate = strtotime( $rehearsalList[$i]->rehearsalDate );
 			$niceDate = date( 'jS M', $phpdate );
-			$draw .= '<th>' . $niceDate . '</th>';
+			// past or future?
+			$colStyle[$i] = $phpdate<time() ? 'inThePast' : 'inTheFuture';
+
+			$draw .= "<th class='" . $colStyle[$i] . "'>" . $niceDate . "</th>";
 		}
 		$draw .='</tr></thead>';
 		$toteCols = count($rehearsalList) +1;
