@@ -26,19 +26,53 @@ function cr_GetList($id, $onlyActive=false) {
 	return false;
 }
 
-function cr_GetRehearsalList($year, $term, $userID) {
+function cr_GetRehearsalListResponses($year, $term, $userID) {
     global $wpdb, $table_prefix;
-    $list=array();
-    $sql = "SELECT dates.rehearsalID, user, response, rehearsalDate, location FROM " . $table_prefix . "choir_rehearsalResponses res JOIN " . $table_prefix . "choir_rehearsalDates dates on dates.rehearsalID = res.rehearsalID  WHERE year = " . intval($year) . " AND  term = " . intval($term) . " AND user = " . $userID . " ORDER BY rehearsalDate ASC";
+		$year=intval($year);
+		$term=intval($term);
+
+		$termID=getTermID($year, $term);
+
+    $sql = "SELECT dates.rehearsalID, user, response, rehearsalDate, location FROM " . $table_prefix . "choir_rehearsalResponses res JOIN " . $table_prefix . "choir_rehearsalDates dates on dates.rehearsalID = res.rehearsalID WHERE dates.termID=$termID AND user = $userID ORDER BY rehearsalDate ASC";
     $data = $wpdb->get_results($sql);
     if(count($data)>0 && is_array($data)) {
         return($data);
-        foreach($data as $r) {
-            $list[$r->rehearsalDate] = $r->response;
-        }
-        return $list;
+    } else {
+			// can't find any responses for this user for this term, so let's insert the rows for them
+			// but first, let's check that rehearsals exist for this year/term...
+			$sql = "SELECT rehearsalID FROM " . $table_prefix . "choir_rehearsalDates dates  WHERE dates.termID = $termID";
+	    $data = $wpdb->get_results($sql);
+			if(count($data)==0) {
+				return false;
+			}
+			$query = "INSERT INTO " . $table_prefix . "choir_rehearsalResponses (rehearsalID, user, response) SELECT rehearsalID, $userID, 0 FROM " . $table_prefix . "choir_rehearsalDates WHERE year = $year AND  term = $term";
+			$res=$wpdb->query($query);
+			// now call this function again to display them
+			if($res) return cr_GetRehearsalListResponses($year, $term, $userID);
+		}
+		return false;
+}
+
+function cr_GetRehearsalList($year, $term) {
+    global $wpdb, $table_prefix;
+		$year=intval($year);
+		$term=intval($term);
+		$termID=getTermID($year, $term);
+
+    $sql = "SELECT dates.rehearsalID, rehearsalDate, location
+						FROM  " . $table_prefix . "choir_rehearsalDates dates
+						WHERE termID = $termID
+						ORDER BY rehearsalDate ASC";
+		$data = $wpdb->get_results($sql);
+    if(count($data)>0 && is_array($data)) {
+        return($data);
     }
-    return false;
+		return false;
+}
+
+// ajax handler to record the user's response to a rehearsal date.
+function cr_RecordRehearsalResponse($userID, $rehearsalID, $response) {
+	// todo why is this empty?
 }
 
 function cr_ResponseName($response) {
@@ -78,6 +112,14 @@ function cr_AddResponse($post, $response, $userID=0) {
 	return false;
 }
 
+function getTermID($year, $term) {
+	global $wpdb, $table_prefix;
+	// get the termID
+	$sql = "SELECT terms.termID FROM " . $table_prefix . "choir_terms terms  WHERE terms.year = $year AND  terms.termNumber = $term ";
+	$data = $wpdb->get_results($sql);
+	return $data[0]->termID;
+}
+
 function cr_AddCss(){
 	echo '<link rel="stylesheet" href="'.get_bloginfo('wpurl').'/wp-content/plugins/choir-roster/css/style.css" type="text/css" media="screen"  />';
 }
@@ -88,6 +130,26 @@ function cr_AjaxResponse($vars) {
 
 	$res=cr_AddResponse(intval($vars["cr_postid"]), $vars["cr_response"], $userID);
 	return cr_DrawList(intval($vars["cr_postid"]), intval($current_user->ID));
+}
+
+function cr_AjaxRehearsalResponse($vars) {
+	global $wpdb, $current_user, $cr_lang, $table_prefix;
+	$userID = isset($vars['cr_uid']) ? $vars['cr_uid'] : $current_user->ID;
+	$response = $vars["cr_response"]=="true" ? 1 : 0;
+	$rehearsalID = $vars["cr_reheasalid"];
+
+	if ($userID > 0 && $rehearsalID > 0 ) {
+			$query = sprintf("REPLACE INTO `".$table_prefix."choir_rehearsalResponses` (`rehearsalID`, `user`, `response`, `setBy`) VALUES (%d, %d, %d, %d)",
+												intval($rehearsalID),
+												intval($userID),
+												$response,
+												intval($current_user->ID)
+												);
+		$res=$wpdb->query($query);
+		if($res) return "Record updated successfully";
+	}
+	return "Update failed";
+
 }
 
 function cr_DrawList($id=0, $activeUserID=0) {
@@ -179,34 +241,261 @@ function drawSingers($arrUserVoices, $voiceHandle, $voiceName, $responseList, $a
 	return $draw;
 }
 
-function cr_DrawRehearsalList($year, $term) {
+function cr_DrawRehearsalList($year=0, $term=0) {
     global $post, $current_user, $cr_lang;
+		if ($year==0 || $term==0) {
+			// not given, so we'll work out what the current/next term is....
+			$currentTerm = cr_GetCurrentTermAndYear();
+			$year = $currentTerm['year'];
+			$term = $currentTerm['term'];
+		}
+
     //currentUser = $current_user";
-    $responseList = cr_GetRehearsalList($year,$term, $current_user->ID);
+		$draw = "<h2>" . $cr_lang['term'] . " $term of $year - {$current_user->display_name}</h2>";
+		$responseList = cr_GetRehearsalListResponses($year,$term, $current_user->ID);
     //return( print_r($responseList,1));
-    $draw = '';
+		if (!$responseList) {
+			$draw .= $cr_lang['noRehearsalsForPeriod'];
+			return $draw;
+		}
 
-    $draw.='<table class="cr_outerTable" id="cr_rehearsalDates_'.$current_user->ID.'">
-                <tr><td>';
-    $draw.=$cr_lang['listheader'].'</td></tr>';
-
-    $draw.='<tr><td><table class="cr_innerTable" id="cr_innerTableL_'.$current_user->ID.'"><tr>';
-    for($i=0; $i<5; $i++){
-        $prettyDate = date("jS M", strtotime($responseList[$i]->rehearsalDate));
-        $draw .= "<td>" . $prettyDate . "</td>";
+    $draw.='<table class="cr_innerTable" id="cr_innerTableL_'.$current_user->ID.'">';
+		$draw .='<thead><tr><th>' . $cr_lang['Date'] . '</th><th>' . $cr_lang['Location'] . '</th><th>' . $cr_lang['Attending'] . '</th></tr></thead><tbody>';
+    for($i=0; $i<count($responseList); $i++){
+        $prettyDate = date("D jS M", strtotime($responseList[$i]->rehearsalDate));
+				$draw .= "<tr>";
+				$draw .= "<td>" . $prettyDate . "</td>";
+				$draw .= "<td>" . $responseList[$i]->location . "</td>";
+				$response = $responseList[$i]->response ? 'checked' : '';
+				$rehearsalID=$responseList[$i]->rehearsalID;
+        $draw .= "<td><input type='checkbox' name='$rehearsalID' onChange='updateRehearsalResponse(this)' id='".$current_user->ID."' title='$rehearsalID' $response></td>"; //"<td> <input type='checkbox' name='thinkOfAName' value='1'" . $response . "></td>";
+				$draw .= "</tr>";
     }
-    $draw.='</tr><tr>';
-    for($i=0; $i<5; $i++){
-        $draw .= "<td> <input type='checkbox' name='thinkOfAName' value='1'" . $responseList[$i]->response ? 'checked' : '' . "></td>";
-    }
-    $draw .= "</tr>";
+    $draw.='</tbody></table>';
 
-    $draw.='</table></td>';
-
-    $draw.='</table></td></tr></table>';
 
     return $draw;
 }
+
+function cr_DrawRehearsalGrid($year=0, $term=0) {
+    global $post, $current_user, $cr_lang, $table_prefix, $wpdb;
+		if ($year==0 || $term==0) {
+			// not given, so we'll work out what the current/next term is....
+			$currentTerm = cr_GetCurrentTermAndYear();
+			$year = $currentTerm['year'];
+			$term = $currentTerm['term'];
+		}
+
+		$draw = "<h2>" . $cr_lang['term'] . " $term " . $cr_lang['of'] . " $year - " . $cr_lang['plannedAttendance'] . "</h2>";
+		$rehearsalList = cr_GetRehearsalList($year,$term);
+		if (!$rehearsalList) {
+			$draw .= $cr_lang['noRehearsalsForPeriod'];
+			return $draw;
+		}
+
+		$colStyle=array();
+    $draw.='<table class="cr_innerTable" id="cr_innerTableL_'.$current_user->ID.'">';
+		$draw .='<thead><tr><th></th>';
+		for($i=0; $i<count($rehearsalList); $i++){
+			// format the date
+			$phpdate = strtotime( $rehearsalList[$i]->rehearsalDate );
+			$niceDate = date( 'jS M', $phpdate );
+			// past or future?
+			$colStyle[$i] = $phpdate<time() ? 'inThePast' : 'inTheFuture';
+			$draw .= "<th class='" . $colStyle[$i] . "'>" . $niceDate . "</th>";
+		}
+		$draw .='</tr></thead>';
+		$draw .='<tbody>';
+
+		$toteCols = count($rehearsalList) +1;
+
+		// Now get the singers - we shall group them by voice
+		$arrUserVoices = array();
+		$users = get_users() ;
+		foreach ($users as $user) {
+			$v = get_user_meta( $user->ID, 'Voice' );
+			$voice = $v[0];
+			$arrUserVoices[$user->ID] = $voice;
+		}
+
+		$arrVoices = array(
+				'Soprano1' => '1st Soprano',
+				'Soprano2' => '2nd Soprano',
+				'Alto1' => '1st Alto',
+				'Alto2' => '2nd Alto',
+				'Tenor1' => '1st Tenor',
+				'Tenor2' => '2nd Tenor',
+				'Bass1' => '1st Bass',
+				'Bass2' => '2nd Bass'
+		);
+
+		foreach($arrVoices as $voiceHandle => $voiceName) {
+
+			$draw .="<tr class='voice_$voiceHandle'><td class='voiceHeader' colspan='$toteCols'>$voiceName</td></tr>";
+			foreach($arrUserVoices as $userID => $voice) {
+				if ($voice == $voiceHandle) {
+					$trClass = 'voice_' . $voiceHandle. ' response_Yes';
+					if ($userID == $activeUserID) $trClass .= " featured";
+					$userData=get_userdata( $userID );
+					$draw.="<tr class='$trClass'><td>" . cr_UserData($userID) . "</td>";
+					// Now fetch their responses
+					$sql = "SELECT response
+									from " . $table_prefix . "choir_rehearsalResponses res
+									JOIN " . $table_prefix . "choir_rehearsalDates dates on res.rehearsalID=dates.rehearsalID
+									WHERE res.user=$userID
+									ORDER BY rehearsalDate ASC";
+			    $responses = $wpdb->get_results($sql);
+
+					if(count($responses)==0) {
+						// no table entry - set them blank
+						for($j=0; $j<$toteCols-1;$j++) {
+							$draw .= "<td></td>";
+						}
+					} else {
+						// display the responses
+						$i=0;
+						foreach ($responses as $response) {
+							if ($colStyle[$i]=='inThePast') {
+								$yayColour = '#777777';
+								$nayColour = '#777777';
+							} else {
+								$yayColour = '#00AA00';
+								$nayColour = '#ff0000';
+							}
+							$yaynay = $response->response==1 ? "<span style='color: $yayColour;' class='fas fa-check fa-2x'></span>" : "<span style='color: $nayColour;' class='fas fa-times fa-2x'></span>";
+							$draw .= "<td align='center'>$yaynay</td>";
+							$i++;
+						}
+					}
+					$draw .= "</tr>";
+
+				}
+			}
+
+		}
+
+	$draw.='</tbody></table>';
+
+
+    return $draw;
+}
+
+
+/*********/
+function cr_DrawRehearsalSummary($year=0, $term=0) {
+    global $post, $current_user, $cr_lang, $table_prefix, $wpdb;
+		if ($year==0 || $term==0) {
+			// not given, so we'll work out what the current/next term is....
+			$currentTerm = cr_GetCurrentTermAndYear();
+			$year = $currentTerm['year'];
+			$term = $currentTerm['term'];
+		}
+
+		$arrVoices = array(
+				'Soprano1' => '1st Sop',
+				'Soprano2' => '2nd Sop',
+				'Alto1' => '1st Alto',
+				'Alto2' => '2nd Alto',
+				'Tenor1' => '1st Tenor',
+				'Tenor2' => '2nd Tenor',
+				'Bass1' => '1st Bass',
+				'Bass2' => '2nd Bass'
+		);
+
+		$draw = "<h2>" . $cr_lang['term'] . " $term of $year</h2>";
+		$rehearsalList = cr_GetRehearsalList($year,$term);
+		if (!$rehearsalList) {
+			$draw .= $cr_lang['noRehearsalsForPeriod'];
+			return $draw;
+		}
+
+    $draw.='<table class="cr_innerTable" id="cr_innerTableL_'.$current_user->ID.'">';
+		//  header with rehearsal dates
+		$draw .='<thead><tr><th></th>';
+		for($i=0; $i<count($rehearsalList); $i++){
+			// format the date
+			$phpdate = strtotime( $rehearsalList[$i]->rehearsalDate );
+			$niceDate = date( 'jS M', $phpdate );
+			// past or future?
+			$colStyle[$i] = $phpdate<time() ? 'inThePast' : 'inTheFuture';
+
+			$draw .= "<th class='" . $colStyle[$i] . "'>" . $niceDate . "</th>";
+		}
+		$draw .='</tr></thead>';
+		$toteCols = count($rehearsalList) +1;
+
+		// body
+		$draw .='<tbody>';
+
+		// Now get the singers - we shall group them by voice
+		$arrUserVoices = array();
+		$arrVoiceTotals = array();
+		$users = get_users() ;
+		foreach ($users as $user) {
+			$v = get_user_meta( $user->ID, 'Voice' );
+			$voice = $v[0];
+			$arrUserVoices[$user->ID] = $voice;
+			$arrVoiceTotals[$voice] +=1;
+		}
+
+		// array of voice parts + rehearsals
+		$attendeeCount = array(
+			'Soprano1' => array(),
+			'Soprano2' => array(),
+			'Alto1' => array(),
+			'Alto2' => array(),
+			'Tenor1' => array(),
+			'Tenor2' => array(),
+			'Bass1' => array(),
+			'Bass2' => array(),
+			'None' => array()
+		);
+
+
+		// now go through each voice, check the response and update the subtotal for the voice...
+		foreach($arrUserVoices as $userID => $voice) {
+
+			// fetch their responses : todo: restrict to year and term
+			$sql = "SELECT dates.rehearsalID, response
+							from " . $table_prefix . "choir_rehearsalResponses res
+							JOIN " . $table_prefix . "choir_rehearsalDates dates on res.rehearsalID=dates.rehearsalID
+							WHERE res.user=$userID
+							ORDER BY rehearsalDate ASC";
+	    $responses = $wpdb->get_results($sql);
+
+			if(count($responses)!=0) {
+				// sum the responses
+				foreach ($responses as $response) {
+					$attendeeCount[$voice][$response->rehearsalID] += $response->response;
+				}
+			}
+
+		} // foreach $arrUserVoices
+//print_r($attendeeCount);
+
+		foreach($arrVoices as $voiceHandle => $voiceName) {
+
+			// first col is voice type
+			$draw .="<tr class='voice_$voiceHandle'><td >$voiceName</td>";
+
+			// rest of the cols are the rehearsal date totals
+			foreach ($rehearsalList as $rehearsal) {
+				$singerCount = $attendeeCount[$voiceHandle][$rehearsal->rehearsalID];
+				// luminosity of cell colour depends on percentage of attendees
+				// use a range of 59-99, so [0-40]+59
+				$lum=99 - ($singerCount/$arrVoiceTotals[$voiceHandle])*60;
+				$draw .= "<td style='text-align:center;background: hsl(122, 69%, " . $lum . "%)'>" . $singerCount . "/" . $arrVoiceTotals[$voiceHandle] . "</td>";
+			}
+			$draw .= "</tr>";
+		}
+
+	$draw.='</tbody></table>';
+
+
+    return $draw;
+}
+
+
 
 
 /********************************************/
@@ -269,6 +558,17 @@ function drawSection($arrUserVoices, $voiceHandle, $voiceName) {
 	return $draw;
 }
 
+
+/************************************/
+function cr_GetCurrentTermAndYear(){
+	global $table_prefix, $wpdb;
+	$sql = "SELECT min(dates.termID), terms.year, terms.termNumber
+					FROM  " . $table_prefix . "choir_rehearsalDates dates
+					join " . $table_prefix . "choir_terms terms on terms.termID=dates.termID
+					WHERE rehearsalDate>NOW()";
+	$data = $wpdb->get_results($sql);
+	return(array('year'=>$data[0]->year, 'term'=>$data[0]->termNumber));
+}
 
 
 ?>
