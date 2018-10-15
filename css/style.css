@@ -12,14 +12,14 @@
 .cr_table td.small { width:15px; }
 
 .cr_innerTable td.voiceHeader { font-weight: bold; font-size: 1em; }
-.cr_innerTable tr.voice_Soprano1 td { background-color: #e2a39d; }
-.cr_innerTable tr.voice_Soprano2 td { background-color: #cd6655; }
-.cr_innerTable tr.voice_Alto1 td { background-color: #e4a262; }
-.cr_innerTable tr.voice_Alto2 td { background-color: #d18610; }
-.cr_innerTable tr.voice_Tenor1 td { background-color: #d775ea; }
-.cr_innerTable tr.voice_Tenor2 td { background-color: #b433ea; }
-.cr_innerTable tr.voice_Bass1 td { background-color: #a176ea; }
-.cr_innerTable tr.voice_Bass2 td { background-color: #7d39ea; }
+.cr_innerTable tr.voice_Soprano1 td, th.voice_Soprano1 { background-color: #e2a39d; }
+.cr_innerTable tr.voice_Soprano2 td, th.voice_Soprano2 { background-color: #cd6655; }
+.cr_innerTable tr.voice_Alto1 td, th.voice_Alto1 { background-color: #e4a262; }
+.cr_innerTable tr.voice_Alto2 td, th.voice_Alto2 { background-color: #d18610; }
+.cr_innerTable tr.voice_Tenor1 td, th.voice_Tenor1 { background-color: #d775ea; }
+.cr_innerTable tr.voice_Tenor2 td, th.voice_Tenor2 { background-color: #b433ea; }
+.cr_innerTable tr.voice_Bass1 td, th.voice_Bass1 { background-color: #a176ea; }
+.cr_innerTable tr.voice_Bass2 td, th.voice_Bass2 { background-color: #7d39ea; }
 
 .cr_innerTable tr.featured td { font-weight:bold; }
 .cr_innerTable tr.response_ td { font-style: italic; color: #222222; }

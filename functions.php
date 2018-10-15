@@ -179,6 +179,62 @@ function cr_DrawList($id=0, $activeUserID=0) {
 				'Bass1' => '1st Bass',
 				'Bass2' => '2nd Bass'
 		);
+		
+		// draw the summary
+		foreach ($responseList as $userID => $response) {
+			//echo "key=$key, val=$response<br>";
+			switch($response) {
+				case 'Yes':
+					$arrYesses[$arrUserVoices[$userID]]++;
+					break;
+				case 'No':
+					$arrNoes[$arrUserVoices[$userID]]++;
+					break;
+				case 'Maybe':
+					$arrMaybes[$arrUserVoices[$userID]]++;
+					break;
+			}
+		}
+
+		$draw.="<table class='cr_innerTable' id='cr_table_summary_".$post->ID."'>";
+		$draw.="<thead><tr style='font-size:0.8em;'><th></th>";
+		foreach ($arrVoices1 as $voiceHandle => $longName) {
+			$draw.="<th class='voice_$voiceHandle'>$longName</th>";
+		}
+		foreach ($arrVoices2 as $voiceHandle => $longName) {
+			$draw.="<th class='voice_$voiceHandle'>$longName</th>";
+		}
+		$draw.="</tr>";
+		$draw.="<tbody>";
+		// Yesses
+		$draw.="<tr><th>YES</th>";
+		foreach ($arrVoices1 as $voiceHandle => $longName) {
+			$draw.="<td style='text-align:center'>$arrYesses[$voiceHandle]</td>";
+		}
+		foreach ($arrVoices2 as $voiceHandle => $longName) {
+			$draw.="<td style='text-align:center'>$arrYesses[$voiceHandle]</td>";
+		}
+		$draw.="</tr>";
+		// Maybes
+		$draw.="<tr><th>Maybe</th>";
+		foreach ($arrVoices1 as $voiceHandle => $longName) {
+			$draw.="<td style='text-align:center'>$arrMaybes[$voiceHandle]</td>";
+		}
+		foreach ($arrVoices2 as $voiceHandle => $longName) {
+			$draw.="<td style='text-align:center'>$arrMaybes[$voiceHandle]</td>";
+		}
+		$draw.="</tr>";
+		// Noes
+		$draw.="<tr><th>No</th>";
+		foreach ($arrVoices1 as $voiceHandle => $longName) {
+			$draw.="<td style='text-align:center'>$arrNoes[$voiceHandle]</td>";
+		}
+		foreach ($arrVoices2 as $voiceHandle => $longName) {
+			$draw.="<td style='text-align:center'>$arrNoes[$voiceHandle]</td>";
+		}
+		$draw.="</tr>";
+		$draw.="</tbody>";
+		$draw.="</table>";
 
 		#$all_meta_for_user = get_user_meta( $uid );
 		#$draw .= print_r( $all_meta_for_user, 1 );
