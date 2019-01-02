@@ -348,6 +348,10 @@ function cr_DrawRehearsalGrid($year=0, $term=0) {
 			$draw .= $cr_lang['noRehearsalsForPeriod'];
 			return $draw;
 		}
+		foreach ($rehearsalList as $key) {
+			$rehearsalIDs[] = $key->rehearsalID;
+		}
+		$rehearsalIDs = implode(',',$rehearsalIDs);
 
 		$colStyle=array();
     $draw.='<table class="cr_innerTable" id="cr_innerTableL_'.$current_user->ID.'">';
@@ -398,9 +402,10 @@ function cr_DrawRehearsalGrid($year=0, $term=0) {
 					$sql = "SELECT response
 									from " . $table_prefix . "choir_rehearsalResponses res
 									JOIN " . $table_prefix . "choir_rehearsalDates dates on res.rehearsalID=dates.rehearsalID
-									WHERE res.user=$userID
+									WHERE res.user=$userID AND res.rehearsalID IN ($rehearsalIDs)
 									ORDER BY rehearsalDate ASC";
-			    $responses = $wpdb->get_results($sql);
+					$responses = $wpdb->get_results($sql);
+
 
 					if(count($responses)==0) {
 						// no table entry - set them blank
@@ -464,6 +469,10 @@ function cr_DrawRehearsalSummary($year=0, $term=0) {
 			$draw .= $cr_lang['noRehearsalsForPeriod'];
 			return $draw;
 		}
+		foreach ($rehearsalList as $key) {
+			$rehearsalIDs[] = $key->rehearsalID;
+		}
+		$rehearsalIDs = implode(',',$rehearsalIDs);
 
     $draw.='<table class="cr_innerTable" id="cr_innerTableL_'.$current_user->ID.'">';
 		//  header with rehearsal dates
@@ -515,7 +524,7 @@ function cr_DrawRehearsalSummary($year=0, $term=0) {
 			$sql = "SELECT dates.rehearsalID, response
 							from " . $table_prefix . "choir_rehearsalResponses res
 							JOIN " . $table_prefix . "choir_rehearsalDates dates on res.rehearsalID=dates.rehearsalID
-							WHERE res.user=$userID
+							WHERE res.user=$userID  AND res.rehearsalID IN ($rehearsalIDs)
 							ORDER BY rehearsalDate ASC";
 	    $responses = $wpdb->get_results($sql);
 
