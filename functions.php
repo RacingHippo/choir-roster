@@ -179,7 +179,7 @@ function cr_DrawList($id=0, $activeUserID=0) {
 				'Bass1' => '1st Bass',
 				'Bass2' => '2nd Bass'
 		);
-		
+
 		// draw the summary
 		foreach ($responseList as $userID => $response) {
 			//echo "key=$key, val=$response<br>";
@@ -356,8 +356,8 @@ function cr_DrawRehearsalGrid($year=0, $term=0) {
 			// format the date
 			$phpdate = strtotime( $rehearsalList[$i]->rehearsalDate );
 			$niceDate = date( 'jS M', $phpdate );
-			// past or future?
-			$colStyle[$i] = $phpdate<time() ? 'inThePast' : 'inTheFuture';
+			// past or future? Compare to yesterday as rehearsalDate is 00:00 on the day.
+			$colStyle[$i] = $phpdate < strtotime('-1 day', time()) ? 'inThePast' : 'inTheFuture';
 			$draw .= "<th class='" . $colStyle[$i] . "'>" . $niceDate . "</th>";
 		}
 		$draw .='</tr></thead>';
@@ -473,7 +473,7 @@ function cr_DrawRehearsalSummary($year=0, $term=0) {
 			$phpdate = strtotime( $rehearsalList[$i]->rehearsalDate );
 			$niceDate = date( 'jS M', $phpdate );
 			// past or future?
-			$colStyle[$i] = $phpdate<time() ? 'inThePast' : 'inTheFuture';
+			$colStyle[$i] = $phpdate < strtotime('-1 day', time()) ? 'inThePast' : 'inTheFuture';
 
 			$draw .= "<th class='" . $colStyle[$i] . "'>" . $niceDate . "</th>";
 		}
