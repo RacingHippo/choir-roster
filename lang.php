@@ -15,6 +15,7 @@ $cr_lang=array(
 "Attending"=>"Attending?",
 "listheader"=>"",
 "question"=>"Are you able to attend this event?",
-"noRehearsalsForPeriod"=>"No rehearsals were found for this term"
+"noRehearsalsForPeriod"=>"No rehearsals were found for this term",
+"tickAttending"=>"<em>(Tick the boxes for rehearsals which you CAN attend)</em>"
 );
 ?>

@@ -308,6 +308,7 @@ function cr_DrawRehearsalList($year=0, $term=0) {
 
     //currentUser = $current_user";
 		$draw = "<h2>" . $cr_lang['term'] . " $term of $year - {$current_user->display_name}</h2>";
+		$draw .= $cr_lang['tickAttending'];
 		$responseList = cr_GetRehearsalListResponses($year,$term, $current_user->ID);
     //return( print_r($responseList,1));
 		if (!$responseList) {
